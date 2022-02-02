@@ -21,5 +21,5 @@ Put the file 'cython.lang' in your '~/.local/share/gtksourceview-4/language-spec
 
 ## License
 
-cython.lanng is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+cython.lang is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
 
