@@ -46,7 +46,8 @@
     <style id="function-name"     name="Function Name"         map-to="def:function"/>
     <style id="class-name"        name="Class Name"            map-to="python3:class-name"/>
     <style id="decorator"         name="Decorator"             map-to="python3:decorator"/>
-    <style id="type"              name="Type"                  map-to="c:type"/>
+    <style id="c-type"            name="Type"                  map-to="c:type"/>
+    <style id="preprocessor"      name="Preprocessor"          map-to="c:preprocessor"/>
   </styles>
 
   <definitions>
@@ -79,14 +80,68 @@
       </match>
     </context>
 
-    <define-regex id="string-prefix">(b|B)?</define-regex>
-    <define-regex id="raw-string-prefix">(r|R|rb|RB|rB|Rb|br|BR|bR|Br)</define-regex>
+    <define-regex id="string-prefix">(b|B|u|U)?</define-regex>
+
+    <context id="multiline-double-quoted-string" style-ref="multiline-string" class="string" class-disabled="no-spell-check">
+      <start>\%{string-prefix}"""</start>
+      <end>"""</end>
+      <include>
+        <context ref="format"/>
+        <context ref="python:escaped-char"/>
+      </include>
+    </context>
+
+    <context id="multiline-single-quoted-string" style-ref="multiline-string" class="string" class-disabled="no-spell-check">
+      <start>\%{string-prefix}'''</start>
+      <end>'''</end>
+      <include>
+        <context ref="format"/>
+        <context ref="python:escaped-char"/>
+      </include>
+    </context>
+
+    <context id="double-quoted-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>\%{string-prefix}"</start>
+      <end>"</end>
+      <include>
+        <context ref="format"/>
+        <context ref="python:escaped-char"/>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
+
+    <context id="single-quoted-string" style-ref="string" end-at-line-end="true" class="string" class-disabled="no-spell-check">
+      <start>\%{string-prefix}'</start>
+      <end>'</end>
+      <include>
+        <context ref="format"/>
+        <context ref="python:escaped-char"/>
+        <context ref="def:line-continue"/>
+      </include>
+    </context>
 
     <context id="module-handler" style-ref="module-handler">
       <keyword>import</keyword>
       <keyword>cimport</keyword>
       <keyword>from</keyword>
       <keyword>as</keyword>
+    </context>
+
+    <context id="compile-time-statements" style-ref="preprocessor">
+      <keyword>DEF</keyword>
+      <keyword>ELIF</keyword>
+      <keyword>ELSE</keyword>
+      <keyword>IF</keyword>
+    </context>
+
+    <define-regex id="ctype">(char|int|short|long|float|double|void|Py_ssize_t|bint)</define-regex>
+    <context id="cython-type">
+      <match extended="true">
+        (\%{ctype})(?!\s*\()
+      </match>
+      <include>
+        <context sub-pattern="1" style-ref="c-type"/>
+      </include>
     </context>
 
     <context id="cython-class-definition" style-ref="class-definition">
@@ -102,24 +157,27 @@
     </context>
 
     <!--'def', 'cdef', 'cpdef' are also present in the 'keyword' context, but has a lower
-     priority, so they are highlighted even if the function name doesn't match. -->
+     priority, so they are highlighted even if the function name doesn't match.
+     Pattern is more complex than in Python because it could mimic c function declaration,
+     and cdef serve also to c type not only function.
+    -->
     <context id="function-definition">
       <match extended="true">
-        (def|cdef|cpdef)
-        (?!\sclass)
-        (?:
-          (\s+public|\s+extern|\s+inline)?
-          (\s+api)?
-          (\s+.+)?
-          (\s+\%{identifier})
-          (?:\s*) (?:\()
+        (def|cdef|cpdef)                    # a def Keywords
+        (?!\sclass)                         # don't match if 'class' keyword
+        (?:                                 #
+          (\s+public|\s+extern|\s+inline)?  # [public|extern|inline]
+          (\s+api)?                         # [api]
+          (\s+.+)?                          # [function return type]
+          (\s+\%{identifier})               # indentifier
+          (?:\s*)(?:\()                     # an open parenthesis
         )
       </match>
       <include>
         <context sub-pattern="1" style-ref="keyword"/>
         <context sub-pattern="2" style-ref="keyword"/>
         <context sub-pattern="3" style-ref="keyword"/>
-        <context sub-pattern="4" style-ref="type"/>
+        <context sub-pattern="4" style-ref="c-type"/>
         <context sub-pattern="5" style-ref="function-name"/>
       </include>
     </context>
@@ -129,10 +187,10 @@
         <context ref="def:shebang"/>
         <context ref="def:shell-like-comment"/>
 
-        <context ref="python3:multiline-double-quoted-string"/>
-        <context ref="python3:multiline-single-quoted-string"/>
-        <context ref="python3:double-quoted-string"/>
-        <context ref="python3:single-quoted-string"/>
+        <context ref="multiline-double-quoted-string"/>
+        <context ref="multiline-single-quoted-string"/>
+        <context ref="double-quoted-string"/>
+        <context ref="single-quoted-string"/>
 
         <context ref="python3:multiline-double-quoted-raw-string"/>
         <context ref="python3:multiline-single-quoted-raw-string"/>
@@ -148,44 +206,33 @@
         <context ref="python3:binary"/>
         <context ref="python3:octal"/>
 
-        <define-regex id="string-prefix">(b|B)?</define-regex>
-        <define-regex id="raw-string-prefix">(r|R|rb|RB|rB|Rb|br|BR|bR|Br)</define-regex>
-
         <context ref="python3:module-handler-from"/>
         <context ref="module-handler"/>
         <context ref="cython-class-definition"/>
         <context ref="function-definition"/>
         <context ref="python3:decorator"/>
 
+        <context ref="cython-type"/>
         <context ref="python:keywords"/>
         <context ref="python3:3x-only-keywords"/>
+        <context ref="compile-time-statements"/>
         <context id="cython-only-keywords" style-ref="keyword">
-          <keyword>DEF</keyword>
-          <keyword>ELIF</keyword>
-          <keyword>ELSE</keyword>
-          <keyword>IF</keyword>
-
           <keyword>cdef</keyword>
           <keyword>cpdef</keyword>
           <keyword>ctypedef</keyword>
           <keyword>cppclass</keyword>
-          <keyword>static</keyword>
-
           <keyword>const</keyword>
           <keyword>unsigned</keyword>
-
           <keyword>api</keyword>
           <keyword>public</keyword>
           <keyword>readonly</keyword>
           <keyword>inline</keyword>
           <keyword>extern</keyword>
-
+          <keyword>static</keyword>
           <keyword>gil</keyword>
           <keyword>nogil</keyword>
-
           <keyword>include</keyword>
           <keyword>namespace</keyword>
-
           <keyword>enum</keyword>
           <keyword>fused</keyword>
           <keyword>struct</keyword>
@@ -211,14 +258,8 @@
           <prefix>(?&lt;![\w\.])</prefix>
           <keyword>reload</keyword>
           <keyword>intern</keyword>
-          <keyword>char</keyword>
-          <keyword>double</keyword>
-          <keyword>void</keyword>
-          <keyword>Py_ssize_t</keyword>
-          <keyword>bint</keyword>
           <keyword>unicode</keyword>
         </context>
-
       </include>
     </context>
   </definitions>
