@@ -144,7 +144,7 @@
       </include>
     </context>
 
-    <context id="cython-class-definition" style-ref="class-definition">
+    <context id="cython-class-definition">
       <match extended="true">
         (class)
         \s+
