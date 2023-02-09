@@ -48,6 +48,7 @@
     <style id="decorator"         name="Decorator"             map-to="python3:decorator"/>
     <style id="c-type"            name="Type"                  map-to="c:type"/>
     <style id="preprocessor"      name="Preprocessor"          map-to="c:preprocessor"/>
+    <style id="annotation"        name="Annotation"            map-to="def:comment"/>
   </styles>
 
   <definitions>
@@ -79,6 +80,18 @@
         [diouxXeEfFgGcrs%]      # conversion type
       </match>
     </context>
+    
+    <define-regex id="valid-python" extended="true">
+      (\%{identifier-path}|)
+    </define-regex>
+    
+    <context id="fstring" style-ref="format" extend-parent="true">
+      <match extended="true">
+        {
+        \%{valid-python} (\( (\%{valid-python})? \))?
+        }     
+      </match>
+    </context>
 
     <define-regex id="string-prefix">(b|B|u|U)?</define-regex>
 
@@ -87,6 +100,7 @@
       <end>"""</end>
       <include>
         <context ref="format"/>
+        <context ref="fstring"/>
         <context ref="python:escaped-char"/>
       </include>
     </context>
@@ -96,6 +110,7 @@
       <end>'''</end>
       <include>
         <context ref="format"/>
+        <context ref="fstring"/>
         <context ref="python:escaped-char"/>
       </include>
     </context>
@@ -105,6 +120,7 @@
       <end>"</end>
       <include>
         <context ref="format"/>
+        <context ref="fstring"/>
         <context ref="python:escaped-char"/>
         <context ref="def:line-continue"/>
       </include>
@@ -115,6 +131,7 @@
       <end>'</end>
       <include>
         <context ref="format"/>
+        <context ref="fstring"/>
         <context ref="python:escaped-char"/>
         <context ref="def:line-continue"/>
       </include>
@@ -144,7 +161,7 @@
       </include>
     </context>
 
-    <context id="cython-class-definition" style-ref="class-definition">
+    <context id="cython-class-definition">
       <match extended="true">
         (class)
         \s+
@@ -181,6 +198,32 @@
         <context sub-pattern="5" style-ref="function-name"/>
       </include>
     </context>
+    
+    <define-regex id="list" extended="true">
+      (\[[\w.,\s]*?\])
+    </define-regex>
+    
+    <context id="annotation">
+      <match extended="true">
+        (:\s+)
+        ([\w.]* \%{list}?)
+        (\s+=)?
+      </match>
+      <include>
+        <context sub-pattern="2" style-ref="annotation"/>
+      </include>
+    </context>
+    
+    <context id="annotation-return">
+      <match extended="true">
+        (\)\s+)
+        (\->\s+[\w.]* \%{list}?)
+        (:)
+      </match>
+      <include>
+        <context sub-pattern="2" style-ref="annotation"/>
+      </include>
+    </context>
 
     <context id="cython" class="no-spell-check">
       <include>
@@ -211,6 +254,8 @@
         <context ref="cython-class-definition"/>
         <context ref="function-definition"/>
         <context ref="python3:decorator"/>
+        <context ref="annotation"/>
+        <context ref="annotation-return"/>
 
         <context ref="cython-type"/>
         <context ref="python:keywords"/>
@@ -221,18 +266,23 @@
           <keyword>cpdef</keyword>
           <keyword>ctypedef</keyword>
           <keyword>cppclass</keyword>
+
           <keyword>const</keyword>
           <keyword>unsigned</keyword>
+
           <keyword>api</keyword>
           <keyword>public</keyword>
           <keyword>readonly</keyword>
           <keyword>inline</keyword>
           <keyword>extern</keyword>
           <keyword>static</keyword>
+
           <keyword>gil</keyword>
           <keyword>nogil</keyword>
+
           <keyword>include</keyword>
           <keyword>namespace</keyword>
+
           <keyword>enum</keyword>
           <keyword>fused</keyword>
           <keyword>struct</keyword>
@@ -260,6 +310,7 @@
           <keyword>intern</keyword>
           <keyword>unicode</keyword>
         </context>
+
       </include>
     </context>
   </definitions>
